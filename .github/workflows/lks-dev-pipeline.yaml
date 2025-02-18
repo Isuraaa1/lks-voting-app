@@ -1,0 +1,46 @@
+name: LKS Dev Pipeline
+
+# Ini akan menjalankan workflow setiap kali ada perubahan di branch 'dev'
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout repository
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      # Setup Docker Buildx
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      # Build Docker image dan push ke ECR
+      - name: Build and Push Image
+        run: |
+          docker build -t your-ecr-repo:latest .
+          docker push your-ecr-repo:latest
+
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Pull Image on Control Plane Instance
+      - name: Pull Image on Control Plane
+        run: ssh -i "your-ssh-key" user@control-plane-instance "docker pull your-ecr-repo:latest"
+
+      # Pull Image on Node1 Instance
+      - name: Pull Image on Node1
+        run: ssh -i "your-ssh-key" user@node1-instance "docker pull your-ecr-repo:latest"
+
+      # Pull Image on Node2 Instance
+      - name: Pull Image on Node2
+        run: ssh -i "your-ssh-key" user@node2-instance "docker pull your-ecr-repo:latest"
+      
+      # Deploy ke Docker Swarm Cluster
+      - name: Deploy Application
+        run: ssh -i "your-ssh-key" user@control-plane-instance "docker stack deploy -c docker-stack.yml your-stack-name"
